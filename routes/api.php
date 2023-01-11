@@ -25,5 +25,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(
         Route::get('/activity/overtime', [ActivityController::class, 'OverTime']);
         Route::post('/activity', [ActivityController::class, 'store'])
             ->middleware('isAdmin');
+        Route::put('/activity/{activity}', [ActivityController::class, 'update']);
+        Route::delete('/activity/{activity}', [ActivityController::class, 'destroy']);
     }
 );

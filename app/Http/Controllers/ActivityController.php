@@ -24,7 +24,8 @@ class ActivityController extends BaseController
      */
     public function index()
     {
-        //
+        $users = User::latest()->paginate(20);
+        return $this->sendResponse($users, 'success');
     }
 
     /**
@@ -83,7 +84,7 @@ class ActivityController extends BaseController
      */
     public function show(Activity $activity)
     {
-        //
+        return $this->sendResponse($activity, 'success');
     }
 
     /**
@@ -106,14 +107,18 @@ class ActivityController extends BaseController
      */
     public function update(Request $request, Activity $activity)
     {
-        $directory = 'uploads/images/' . date('Y') . '/' . date('m');
-        $original_name = $request->image->getClientOriginalName();
-        $request->image->move(public_path($directory), $original_name);
+        $file_url = null;
+        if ($request->hasFile('image')) {
+            $directory = 'uploads/images/' . date('Y') . '/' . date('m');
+            $original_name = $request->image->getClientOriginalName();
+            $request->image->move(public_path($directory), $original_name);
+            $file_url = $directory . '/' . $original_name;
+        }
 
         $dataToStore = [
             'title' => $request->title,
             'description' => $request->description,
-            'image' => $directory . '/' . $original_name,
+            'image' => $file_url ?? $request->image,
             'date' => $request->date,
         ];
 
@@ -122,7 +127,9 @@ class ActivityController extends BaseController
             $updated = $this->activityService->update($activity->id, $dataToStore);
             return $this->sendResponse($updated, 'success');
         } else if ($request->type === 'global') {
-            $activity->users()->updateExistingPivot($activity->id, $dataToStore);
+            // $activity->users()->updateExistingPivot($activity->id, $dataToStore);
+            $updated = $this->activityService->update($activity->id, $dataToStore);
+            return $this->sendResponse($updated, 'success');
         } else {
             return $this->sendError('', 'Invalid type ' . $request->type);
         }
@@ -136,14 +143,14 @@ class ActivityController extends BaseController
      */
     public function destroy(Activity $activity, Request $request)
     {
-        if ($request->type === 'global') {
+        if ($activity->type === 'global') {
             $activity->users()->deleteExistingPivot($activity->id);
-        } elseif ($request->type === 'user') {
             $deleted = $this->activityService->delete($activity->id);
             return $this->sendResponse($deleted, 'success');
         } else {
-            return $this->sendError('', 'Invalid type ' . $request->type);
-        }
+            $deleted = $this->activityService->delete($activity->id);
+            return $this->sendResponse($deleted, 'success');
+        } 
         
     }
 
